@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Invoice Generator — Modern</title>
+  <meta name="description" content="Modern Invoice Generator — generate invoice image and PDF, share on mobile & desktop.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --accent:#1976d2; --accent-2:#0b5ed7; --muted:#6b7280; --bg:#f8fafc; --card:#ffffff;
+      --width:900px; --radius:12px;
+      --font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{font-family:var(--font-family);background:var(--bg);margin:0;padding:20px;display:flex;justify-content:center}
+    .wrap{max-width:1100px;width:100%;display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
+    .panel{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(16,24,40,0.06);}
+    h2{margin:0 0 12px 0;color:var(--accent);font-size:18px}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+    input[type=text], input[type=date], input[type=number], textarea, select{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid #e6eef6;background:#fff;font-size:14px}
+    textarea{resize:vertical}
+    .row{display:flex;gap:8px}
+    .btn{display:inline-block;padding:10px 12px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;margin-top:10px}
+    .btn.secondary{background:var(--accent-2)}
+    .small{font-size:13px;color:var(--muted)}
+    .theme-row{display:flex;gap:8px;margin-top:8px}
+    .theme-btn{flex:1;padding:8px;border-radius:8px;border:1px solid #e6eef6;background:#fff;cursor:pointer}
+    /* Invoice preview */
+    .preview-wrap{display:flex;justify-content:center}
+    .invoice{width:var(--width);background:var(--card);border-radius:10px;overflow:hidden;border:1px solid #e6eef6}
+    .invoice .head{background:linear-gradient(90deg,var(--accent),var(--accent-2));padding:18px;color:#fff;display:flex;justify-content:space-between;align-items:center}
+    .logo-box{display:flex;gap:12px;align-items:center}
+    .logo-preview{width:84px;height:64px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .logo-preview img{max-width:100%;max-height:100%;object-fit:contain}
+    .company{font-weight:700;font-size:18px}
+    .content{padding:20px}
+    .bill{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .bill .left,.bill .right{width:48%}
+    .table{width:100%;border-collapse:collapse;margin-top:14px}
+    .table th{background:#f8fafc;text-align:left;padding:10px;border-bottom:1px solid #eef5fb;color:var(--muted);font-size:13px}
+    .table td{padding:10px;border-bottom:1px solid #f1f5f9;font-size:14px}
+    .table td.right{text-align:right}
+    .summary{display:flex;justify-content:space-between;margin-top:16px;align-items:flex-start}
+    .notes{width:60%;color:var(--muted);font-size:13px}
+    .totals{width:36%;text-align:right}
+    .totals .row{display:flex;justify-content:space-between;padding:6px 0;color:var(--muted)}
+    .totals .grand{font-size:22px;font-weight:800;color:#111;margin-top:8px}
+    .footer{background:#fbfdff;padding:12px;text-align:center;font-size:13px;color:var(--muted)}
+    /* responsive */
+    @media (max-width:980px){ .wrap{grid-template-columns:1fr} .panel{order:2} .preview-wrap{order:1} .invoice{width:100%} }
+    #companyInfoTop {
+  color: #ffffff;
+}
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h2>Invoice Controls</h2>
+
+      <label>Upload Logo (PNG/JPG)</label>
+      <input id="logoInput" type="file" accept="image/*">
+
+      <label>Company</label>
+      <input id="companyName" type="text" placeholder="Company">
+
+      <label>Address</label>
+      <textarea id="companyAddress" rows="2" placeholder="Address"></textarea>
+
+      <label>Phone</label>
+      <input id="companyPhone" type="text" placeholder="Phone">
+
+      <label>Email</label>
+      <input id="companyEmail" type="text" placeholder="Email">
+
+      <label>Website</label>
+      <input id="companyWebsite" type="text" placeholder="Website">
+
+      <label>Customer name</label>
+      <input id="customerName" type="text" placeholder="Customer Name">
+
+      <label>Customer address</label>
+      <textarea id="customerAddress" rows="2" placeholder="Customer Address"></textarea>
+
+      <div class="row" style="margin-top:8px">
+        <input id="invoiceNo" type="text" placeholder="INV-001">
+        <input id="invoiceDate" type="date">
+      </div>
+
+      <label>Currency</label>
+      <input id="currency" type="text" placeholder="₦" value="₦">
+
+      <label>Delivery Fee</label>
+      <input id="deliveryFee" type="number" min="0" step="0.01" value="0">
+
+      <label>Notes</label>
+      <textarea id="notes" rows="2">Thank you for doing business with us.</textarea>
+
+      <label style="margin-top:12px" class="small">Theme</label>
+      <div class="theme-row">
+        <button class="theme-btn" data-a="#d32f2f" data-b="#2e7d32" title="Red & Green">Red</button>
+        <button class="theme-btn" data-a="#2e7d32" data-b="#d32f2f" title="Green & Red">Green</button>
+        <button class="theme-btn" data-a="#1976d2" data-b="#0b5ed7" title="Blue">Blue</button>
+        <button class="theme-btn" data-a="#333333" data-b="#555555" title="Black">Black</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <button id="addItem" class="btn">+ Add item</button>
+        <button id="generateImage" class="btn secondary">Generate Image</button>
+        <button id="downloadPdf" class="btn">Download PDF</button>
+        <button id="shareBtn" class="btn secondary">Share Image</button>
+        <button id="downloadPng" class="btn">Download PNG</button>
+        <button id="resetBtn" class="btn secondary" style="margin-top:8px;background:#ef4444">Reset</button>
+      </div>
+      <p class="small" style="margin-top:12px">Notes: Image share works on modern mobile browsers. Desktop will download image and provide a WhatsApp web fallback.</p>
+    </div>
+
+    <div class="preview-wrap">
+      <div id="invoice" class="invoice" role="document" aria-label="Invoice preview">
+        <div class="head">
+          <div class="logo-box">
+            <div class="logo-preview" id="logoPreview"><div id="logoPlaceholder" class="small">Logo</div><img id="logoImg" alt="logo" style="display:none"></div>
+            <div style="color:#fff">
+              <div class="company">Invoice</div>
+              <div class="small">Built by Cobaprime Technologies</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div id="companyInfoTop" class="small"></div>
+          </div>
+        </div>
+
+        <div class="content">
+          <div class="bill">
+            <div class="left">
+              <div style="font-weight:700" id="billToTitle">Bill To</div>
+              <div id="billName" style="font-weight:700;font-size:16px">[Customer Name]</div>
+              <div id="billAddress" class="small" style="margin-top:6px">[Customer Address]</div>
+            </div>
+            <div class="right">
+              <div class="small">INVOICE #</div>
+              <div id="invNoView" style="font-weight:700;font-size:16px">INV-001</div>
+              <div style="margin-top:10px" class="small">DATE</div>
+              <div id="invDateView" style="font-weight:700">2025-01-01</div>
+            </div>
+          </div>
+
+          <table class="table" id="itemsTable">
+            <thead><tr><th>Item</th><th>Description</th><th>Qty</th><th>Price</th><th class="right">Amount</th></tr></thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+
+          <div class="summary">
+            <div class="notes small" id="notesView">Thank you for doing business with us.</div>
+            <div class="totals">
+              <label>Currency</label>
+<select id="currencySelect">
+  <option value="₦" selected>Naira (₦)</option>
+  <option value="$">USD ($)</option>
+  <option value="€">Euro (€)</option>
+  <option value="£">Pound (£)</option>
+  <option value="¥">Yen (¥)</option>
+</select>
+
+              <div class="row"><div class="small">Subtotal</div><div id="subView">₦0.00</div></div>
+              <div class="row"><div class="small">Tax</div><div id="taxView">₦0.00</div></div>
+              <div class="row"><div class="small">Discount</div><div id="discView">₦0.00</div></div>
+              <div class="row"><div class="small">Delivery Fee</div><div id="deliveryView">₦0.00</div></div>
+              <div class="grand" id="grandView">₦0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer" id="footerNote">Thank you for doing business with us.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  // DOM refs
+  const currencySelect = document.getElementById('currencySelect'); // your <select>
+  const currencyInput = document.getElementById('currency'); // hidden input for computeTotals
+  let currency = currencySelect.value || '₦';
+  currencyInput.value = currency; // initialize hidden input
+
+  currencySelect.addEventListener('change', () => {
+    currency = currencySelect.value;
+    currencyInput.value = currency; // sync with computeTotals
+    computeTotals(); // update totals immediately
+  });
+
+  const logoInput = document.getElementById('logoInput');
+  const logoImg = document.getElementById('logoImg');
+  const logoPlaceholder = document.getElementById('logoPlaceholder');
+
+  const companyName = document.getElementById('companyName');
+  const companyAddress = document.getElementById('companyAddress');
+  const companyPhone = document.getElementById('companyPhone');
+  const companyEmail = document.getElementById('companyEmail');
+  const companyWebsite = document.getElementById('companyWebsite');
+
+  const customerName = document.getElementById('customerName');
+  const customerAddress = document.getElementById('customerAddress');
+  const invoiceNo = document.getElementById('invoiceNo');
+  const invoiceDate = document.getElementById('invoiceDate');
+  const notesInput = document.getElementById('notes');
+  const deliveryFeeInput = document.getElementById('deliveryFee');
+
+  const invNoView = document.getElementById('invNoView');
+  const invDateView = document.getElementById('invDateView');
+  const billName = document.getElementById('billName');
+  const billAddress = document.getElementById('billAddress');
+  const itemsBody = document.getElementById('itemsBody');
+  const notesView = document.getElementById('notesView');
+  const footerNote = document.getElementById('footerNote');
+
+  const subView = document.getElementById('subView');
+  const taxView = document.getElementById('taxView');
+  const discView = document.getElementById('discView');
+  const deliveryView = document.getElementById('deliveryView');
+  const grandView = document.getElementById('grandView');
+  const companyInfoTop = document.getElementById('companyInfoTop');
+
+  const addItemBtn = document.getElementById('addItem');
+  const generateImageBtn = document.getElementById('generateImage');
+  const downloadPngBtn = document.getElementById('downloadPng');
+  const downloadPdfBtn = document.getElementById('downloadPdf');
+  const shareBtn = document.getElementById('shareBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const themeBtns = document.querySelectorAll('.theme-btn');
+  const invoiceRoot = document.getElementById('invoice');
+
+  // Utils
+  function round2(v){ return Math.round((v+Number.EPSILON)*100)/100; }
+  function fmt(v){ return v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  // Invoice counter
+  function nextInvoice(){
+    let last = localStorage.getItem('modern_inv_counter') || '0';
+    let next = parseInt(last,10) + 1;
+    localStorage.setItem('modern_inv_counter', String(next));
+    return 'INV-' + String(next).padStart(3,'0');
+  }
+
+  // Initialize
+  const today = new Date().toISOString().slice(0,10);
+  invoiceDate.value = today;
+  invDateView.textContent = today;
+  if(!invoiceNo.value) invoiceNo.value = nextInvoice();
+  invNoView.textContent = invoiceNo.value;
+
+  // Sync functions
+  function syncCompany(){
+    const lines = [];
+    if(companyName.value) lines.push(companyName.value);
+    if(companyAddress.value) lines.push(companyAddress.value);
+    const contact = [];
+    if(companyPhone.value) contact.push(companyPhone.value);
+    if(companyEmail.value) contact.push(companyEmail.value);
+    if(companyWebsite.value) contact.push(companyWebsite.value);
+    companyInfoTop.innerHTML = lines.join('<br>') + (contact.length? '<br>'+contact.join(' • '): '');
+  }
+  [companyName, companyAddress, companyPhone, companyEmail, companyWebsite].forEach(i => i.addEventListener('input', syncCompany));
+
+  customerName.addEventListener('input', ()=> { billName.textContent = customerName.value || '[Customer Name]'; });
+  customerAddress.addEventListener('input', ()=> { billAddress.textContent = customerAddress.value || '[Customer Address]'; });
+  invoiceNo.addEventListener('input', ()=> { invNoView.textContent = invoiceNo.value || invNoView.textContent; saveCounter(); });
+  invoiceDate.addEventListener('input', ()=> { invDateView.textContent = invoiceDate.value || invDateView.textContent; });
+  notesInput.addEventListener('input', ()=> { notesView.textContent = notesInput.value || ''; footerNote.textContent = notesInput.value || ''; });
+
+  function saveCounter(){
+    const m = invoiceNo.value.match(/(\d+)/);
+    if(m) localStorage.setItem('modern_inv_counter', String(parseInt(m[1],10)));
+  }
+
+  // Logo upload
+  logoInput.addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(!f){ logoImg.style.display='none'; logoPlaceholder.style.display='block'; return; }
+    const reader = new FileReader();
+    reader.onload = function(evt){ logoImg.src = evt.target.result; logoImg.style.display='block'; logoPlaceholder.style.display='none'; };
+    reader.readAsDataURL(f);
+  });
+
+  // Theme buttons
+  themeBtns.forEach(b=> b.addEventListener('click', ()=>{
+    const a = b.getAttribute('data-a'); const bb = b.getAttribute('data-b');
+    document.documentElement.style.setProperty('--accent', a);
+    document.documentElement.style.setProperty('--accent-2', bb);
+  }));
+
+  // Items logic
+  function addRow(name='',desc='',qty=1,price=0){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="it-name" type="text" value="${name}" placeholder="Item name"></td>
+      <td><input class="it-desc" type="text" value="${desc}" placeholder="Description"></td>
+      <td><input class="it-qty" type="number" min="0" value="${qty}" style="width:80px"></td>
+      <td><input class="it-price" type="number" min="0" step="0.01" value="${price}" style="width:110px"></td>
+      <td class="right it-amount">${currencyInput.value || '₦'}0.00</td>
+    `;
+    itemsBody.appendChild(tr);
+    tr.querySelectorAll('input').forEach(i=> i.addEventListener('input', computeTotals));
+    computeTotals();
+  }
+  addRow('Sample item','',1,0);
+
+  function computeTotals(){
+    const curr = currencyInput.value || '₦';
+    let subtotal=0;
+    itemsBody.querySelectorAll('tr').forEach(row=>{
+      const q = Number(row.querySelector('.it-qty').value) || 0;
+      const p = Number(row.querySelector('.it-price').value) || 0;
+      const line = round2(q * p);
+      subtotal += line;
+      row.querySelector('.it-amount').textContent = curr + fmt(line);
+    });
+    const tax = round2(subtotal * 0.00);
+    const disc = 0;
+    const delivery = Number(deliveryFeeInput.value) || 0;
+
+    subView.textContent = curr + fmt(subtotal);
+    taxView.textContent = curr + fmt(tax);
+    discView.textContent = curr + fmt(disc);
+    deliveryView.textContent = curr + fmt(delivery);
+    grandView.textContent = curr + fmt(round2(subtotal + tax - disc + delivery));
+  }
+
+  addItemBtn.addEventListener('click', ()=> addRow());
+  currencyInput.addEventListener('input', computeTotals);
+  deliveryFeeInput.addEventListener('input', computeTotals);
+
+  // Canvas and export logic (unchanged)
+  async function generateCanvas(scale=2){
+    computeTotals(); syncCompany();
+    await waitForImages(invoiceRoot);
+    return await html2canvas(invoiceRoot, { scale, useCORS:true, backgroundColor:'#ffffff', allowTaint:true });
+  }
+
+  generateImageBtn.addEventListener('click', async ()=>{
+    try{ const canvas = await generateCanvas(2); const data = canvas.toDataURL('image/png'); const w = window.open('about:blank','_blank'); w.document.write('<img src="'+data+'" style="width:100%"/>'); w.document.title = 'Invoice Image'; } catch(e){ alert('Error: '+e.message); }
+  });
+
+  downloadPngBtn.addEventListener('click', async ()=>{
+    try{ const canvas = await generateCanvas(2); canvas.toBlob(blob=>{ const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = (invoiceNo.value || 'invoice')+'.png'; a.click(); URL.revokeObjectURL(url); saveCounter(); }, 'image/png', 1); }catch(e){ alert('Download failed: '+e.message); }
+  });
+
+  downloadPdfBtn.addEventListener('click', async ()=>{
+    try{ const canvas = await generateCanvas(2); const imgData = canvas.toDataURL('image/png'); const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit:'px', format:[canvas.width, canvas.height] }); pdf.addImage(imgData,'PNG',0,0,canvas.width,canvas.height); pdf.save((invoiceNo.value||'invoice')+'.pdf'); saveCounter(); } catch(e){ alert('PDF failed: '+e.message); }
+  });
+
+  shareBtn.addEventListener('click', async ()=>{
+    try{
+      const canvas = await generateCanvas(2);
+      canvas.toBlob(async blob=>{
+        const file = new File([blob], (invoiceNo.value||'invoice')+'.png',{type:'image/png'});
+        if(navigator.canShare && navigator.canShare({ files:[file] })){
+          try{ await navigator.share({ title:'Invoice '+(invoiceNo.value||''), text: notesInput.value||'', files:[file] }); saveCounter(); return; }catch(err){ console.warn('Share error', err); }
+        }
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=(invoiceNo.value||'invoice')+'.png'; a.click(); URL.revokeObjectURL(url);
+        const text = encodeURIComponent('Invoice '+(invoiceNo.value||'')+' from '+(companyName.value||'')+'\n'+(notesInput.value||''));
+        window.open('https://wa.me/?text='+text,'_blank'); saveCounter();
+      }, 'image/png',1);
+    }catch(e){ alert('Share failed: '+e.message); }
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    companyName.value=''; companyAddress.value=''; companyPhone.value=''; companyEmail.value=''; companyWebsite.value='';
+    customerName.value=''; customerAddress.value=''; invoiceNo.value=nextInvoice(); invoiceDate.value=today; notesInput.value='Thank you for doing business with us.';
+    currencyInput.value='₦'; currencySelect.value='₦'; deliveryFeeInput.value=0;
+    itemsBody.innerHTML=''; addRow('Sample item','',1,0); syncCompany(); computeTotals();
+    logoImg.src=''; logoImg.style.display='none'; logoPlaceholder.style.display='block';
+  });
+
+  window.addEventListener('beforeunload', saveCounter);
+  syncCompany(); computeTotals();
+
+  // Wait for images to load before canvas
+  function waitForImages(el){
+    const imgs = el.querySelectorAll('img'); const promises=[];
+    imgs.forEach(img=>{ if(img.complete) return; promises.push(new Promise(res=>img.addEventListener('load',res))); promises.push(new Promise(res=>img.addEventListener('error',res))); });
+    return Promise.all(promises);
+  }
+</script>
+
+</body>
+</html>
